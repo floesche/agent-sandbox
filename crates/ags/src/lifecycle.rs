@@ -377,6 +377,29 @@ pub fn run_agent(opts: RunOptions) -> ExitCode {
         }
     };
 
+    // Keep relays alive until the attached Podman invocation finishes. They are
+    // absent in lockdown; hook requests were rejected before any sidecar startup.
+    let _connections = if !opts.lockdown && config.host_connections.iter().any(|c| c.enabled) {
+        match crate::podman::ensure_local_podman()
+            .map_err(|e| e.to_string())
+            .and_then(|()| {
+                crate::host_connections::Session::start(&config.host_connections, &runtime_base)
+                    .map_err(|e| e.to_string())
+            })
+            .and_then(|session| {
+                session.attach(&mut plan)?;
+                Ok(session)
+            }) {
+            Ok(session) => Some(session),
+            Err(e) => {
+                eprintln!("error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else {
+        None
+    };
+
     if let Some(hooks) = &hook_materialized {
         hooks.finish_plan_env(&mut plan);
     }

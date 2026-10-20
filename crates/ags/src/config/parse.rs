@@ -155,6 +155,7 @@ fn validate(
         secrets.extend(extra_secrets);
     }
 
+    crate::host_connections::validate(&raw.host_connection).map_err(ConfigError::Validation)?;
     let browser = validate_browser(&raw.browser)?;
     let host_ui = validate_host_ui(&raw.host_ui)?;
     let clipboard = validate_clipboard(&raw.clipboard)?;
@@ -164,6 +165,7 @@ fn validate(
     Ok(ValidatedConfig {
         config_file: config_path.to_owned(),
         prepare_hooks: Vec::new(),
+        host_connections: raw.host_connection,
         sandbox,
         mounts,
         tools,

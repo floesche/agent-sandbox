@@ -11,6 +11,7 @@ pub mod git;
 pub(crate) mod github_release;
 mod github_release_http;
 pub mod hooks;
+pub mod host_connections;
 pub mod host_dialog;
 mod host_process;
 pub mod host_ui;

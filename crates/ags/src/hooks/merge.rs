@@ -2,7 +2,7 @@ use super::Response;
 use super::protocol::{BindMount, EnvValue, GeneratedFile, Mode, overlaps};
 use crate::config::{MountMode, ValidatedConfig};
 use crate::plan::{LaunchPlan, PlanMount};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 
 #[derive(Debug)]
@@ -12,6 +12,7 @@ enum Placement {
 }
 #[derive(Debug, Default)]
 pub struct Contributions {
+    connections: BTreeSet<String>,
     env: BTreeMap<String, EnvValue>,
     placements: BTreeMap<String, Placement>,
 }
@@ -21,6 +22,7 @@ impl Contributions {
         let mut merged = Self::default();
         for response in responses {
             response.validate()?;
+            merged.connections.extend(response.connections);
             merged.env.extend(response.env);
             for file in response.files {
                 merged
@@ -46,7 +48,7 @@ impl Contributions {
     /// Apply CLI precedence before materialization or secret lookup. Literal and secret
     /// contributions share exactly one keyspace. Never reveal response content in summaries.
     pub fn redact_summary(&self) -> serde_json::Value {
-        serde_json::json!({"environment_keys": self.env.keys().collect::<Vec<_>>(),
+        serde_json::json!({"connections": self.connections, "environment_keys": self.env.keys().collect::<Vec<_>>(),
             "secret_reference_keys": self.env.iter().filter_map(|(k,v)| matches!(v, EnvValue::Secret(_)).then_some(k)).collect::<Vec<_>>(),
             "destinations": self.placements.keys().collect::<Vec<_>>(), "values": "redacted"})
     }
@@ -55,6 +57,10 @@ impl Contributions {
         config: &mut ValidatedConfig,
         opts: &crate::cli::RunOptions,
     ) -> Result<Materialized, String> {
+        if opts.lockdown && !self.connections.is_empty() {
+            return Err("--lockdown rejects prepare hook host connections".into());
+        }
+        crate::host_connections::activate(&mut config.host_connections, &self.connections)?;
         for (key, _) in &opts.env {
             self.env.remove(key);
         }
@@ -181,6 +187,7 @@ impl Contributions {
                 }
             }
         }
+        let literal_keys = env.iter().map(|(key, _)| key.clone()).collect();
         let overridden_keys = env
             .iter()
             .map(|(k, _)| k.clone())
@@ -194,6 +201,7 @@ impl Contributions {
             env,
             references,
             overridden_keys,
+            literal_keys,
         })
     }
 }
@@ -225,6 +233,7 @@ pub struct Materialized {
     pub env: Vec<(String, String)>,
     pub references: BTreeMap<String, String>,
     overridden_keys: Vec<String>,
+    literal_keys: Vec<String>,
 }
 impl Materialized {
     pub fn filter_default_secrets(&self, secrets: &mut HashMap<String, String>) {
@@ -240,6 +249,17 @@ impl Materialized {
         plan.env
             .env_file_entries
             .retain(|(key, _)| !self.overridden_keys.contains(key));
+        // Hooks may load credentials themselves. Never expose their literals in
+        // Podman's argv; use the same private env-file transport as secret refs.
+        plan.env
+            .inline
+            .retain(|(key, _)| !self.literal_keys.contains(key));
+        plan.env.env_file_entries.extend(
+            self.env
+                .iter()
+                .filter(|(key, _)| self.literal_keys.contains(key))
+                .cloned(),
+        );
     }
     /// Verify actual plan placements, including AGS-owned mounts and workspace mappings.
     /// Existing plan builder also checks protected cache exposure before this check.

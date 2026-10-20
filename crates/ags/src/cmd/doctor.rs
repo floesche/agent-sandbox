@@ -62,6 +62,25 @@ fn run_checks(ck: &mut Checker, config: &ValidatedConfig) {
     check_browser(ck, config);
     check_host_ui(ck, config);
     check_clipboard(ck, config);
+    if !config.host_connections.is_empty() {
+        ck.section("Host connections");
+        for c in &config.host_connections {
+            if !c.enabled {
+                ck.warn(&format!(
+                    "host connection {:?}: disabled (hook activation: {})",
+                    c.name, c.allow_hooks
+                ));
+            } else {
+                match crate::host_connections::check(c) {
+                    Ok(()) => ck.ok(&format!(
+                        "host connection {:?}: reachable (transport only)",
+                        c.name
+                    )),
+                    Err(e) => ck.fail(&e),
+                }
+            }
+        }
+    }
 }
 
 fn check_tooling(ck: &mut Checker) {
