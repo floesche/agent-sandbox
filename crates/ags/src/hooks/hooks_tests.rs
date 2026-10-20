@@ -741,7 +741,7 @@ fn final_plan_rejects_workdir_overlaps_preserves_guards_and_filters_inherited_en
     assert!(!plan.env.passthrough_names.iter().any(|s| s == "TERM"));
     assert!(
         plan.env
-            .inline
+            .env_file_entries
             .iter()
             .any(|(k, v)| k == "TERM" && v == "hook-term")
     );

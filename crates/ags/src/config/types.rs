@@ -12,6 +12,7 @@ use super::{LockedAgentProvider, LockedToolDownload};
 pub struct ValidatedConfig {
     pub config_file: PathBuf,
     pub prepare_hooks: Vec<crate::hooks::Hook>,
+    pub host_connections: Vec<crate::host_connections::Connection>,
     pub sandbox: ValidatedSandbox,
     pub mounts: Vec<ValidatedMount>,
     pub tools: Vec<ValidatedTool>,

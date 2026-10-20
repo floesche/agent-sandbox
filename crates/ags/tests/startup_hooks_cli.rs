@@ -580,8 +580,9 @@ assert 'OP_RESOLVED_FIXTURE_VALUE' not in repr(dict(os.environ))
 env_file=args[args.index('--env-file')+1]
 values=dict(line.rstrip('\n').split('=',1) for line in open(env_file))
 assert values['TOKEN_A']==values['TOKEN_B']=='OP_RESOLVED_FIXTURE_VALUE'
-assert 'LOSING' not in values and 'TERM' not in values
-assert 'LOSING=cli' in args and 'TERM=hook-term' in args and 'APP_REGION=hook-region' in args
+assert 'LOSING' not in values
+assert values['TERM']=='hook-term' and values['APP_REGION']=='hook-region'
+assert 'LOSING=cli' in args and 'TERM=hook-term' not in args and 'APP_REGION=hook-region' not in args
 volume=next(arg for arg in args if ':/tmp/fixture-prepared.txt:ro' in arg)
 source=volume.split(':')[0]
 assert open(source).read()=='generated-fixture-data'

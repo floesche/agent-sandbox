@@ -14,6 +14,8 @@ use super::defaults::{
 pub struct RawConfig {
     pub sandbox: RawSandbox,
     #[serde(default)]
+    pub host_connection: Vec<crate::host_connections::Connection>,
+    #[serde(default)]
     pub mount: Vec<RawMount>,
     #[serde(default)]
     pub agent_mount: Vec<RawAgentMount>,

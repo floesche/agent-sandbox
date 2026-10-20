@@ -38,11 +38,11 @@ impl fmt::Display for PodmanError {
                 "payload descriptor count mismatch (expected {expected}, received {received})"
             ),
             Self::RemotePodmanUnsupported => f.write_str(
-                "--op-secret-set requires local Podman; remote Podman connections cannot preserve anonymous descriptors",
+                "this launch requires local Podman; remote connections cannot carry host connection sockets or anonymous secret descriptors",
             ),
             Self::LocalPodmanProbe(error) => write!(
                 f,
-                "could not verify a local Podman connection required by --op-secret-set: {error}"
+                "could not verify the required local Podman connection: {error}"
             ),
             Self::InvalidPodmanArgument => f.write_str("invalid Podman argument"),
             Self::PayloadPrepare(error) => {
@@ -192,7 +192,7 @@ pub(crate) fn execute_with_payload_sources(
 /// `CONTAINER_HOST` and `CONTAINER_CONNECTION` select Podman's remote client;
 /// a default configured connection does too. A local API socket is not enough:
 /// descriptors cannot cross the remote client/server protocol safely.
-fn ensure_local_podman() -> Result<(), PodmanError> {
+pub(crate) fn ensure_local_podman() -> Result<(), PodmanError> {
     if ["CONTAINER_HOST", "CONTAINER_CONNECTION"]
         .iter()
         .any(|name| std::env::var_os(name).is_some_and(|value| !value.is_empty()))

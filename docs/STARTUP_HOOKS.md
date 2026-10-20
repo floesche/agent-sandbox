@@ -3,8 +3,9 @@
 AGS runs optional **host executables**, before any container creation, to prepare a launch.
 Only `prepare` is implemented. `started` and `finished` are reserved future events.
 There is no hook-to-hook dependency ordering, interactive hook prompting, bidirectional
-protocol, agent-settings merge, security override, retry, or AGS-managed external service
-lifecycle. This is not a container sandbox for hook code.
+protocol, agent-settings merge, security override, retry, or lifecycle management for
+hook-spawned services. Hooks may request named [host connections](HOST_CONNECTIONS.md)
+whose relay lifecycle AGS owns. This is not a container sandbox for hook code.
 
 ## Configure
 
@@ -102,9 +103,15 @@ Never print credentials to diagnostics. For example:
 }
 ```
 
+An optional `"connections": ["name"]` contribution requests host-defined connections
+with `allow_hooks = true`. Requests accumulate and are deduplicated; unknown/ungranted
+names fail. Hooks cannot declare endpoint addresses. `--lockdown` rejects connection
+requests. See [host connections](HOST_CONNECTIONS.md) for configuration and authority.
+
 All contribution sections are optional. Environment literals and secret references share
 one keyspace. Values must be single-line, NUL-free UTF-8 for the existing environment-file
-transport. References use `op://vault/item/[section/]field`; interpolation and arbitrary
+transport. Literal hook values also use that private env file, never Podman argv.
+References use `op://vault/item/[section/]field`; interpolation and arbitrary
 commands are not supported. Bind sources must be existing regular files/directories, absolute,
 and free of NUL/newlines/colon. AGS does not create these external sources. Generated files
 are UTF-8 response content, staged as private 0600 files and mounted read-only. There is no

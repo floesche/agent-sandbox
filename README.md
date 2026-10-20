@@ -35,6 +35,7 @@ It is designed to keep your host clean while still giving agents controlled acce
 - Optional hardened `--lockdown` runs for inspecting untrusted/foreign repos with reduced host exposure
 - Optional browser sidecar support for browser-enabled workflows
 - Narrow clipboard bridge for Pi image/text paste and copy flows without compositor passthrough; one paste waits for approval and completes once
+- [Host connections](docs/HOST_CONNECTIONS.md): session-scoped Unix socket and loopback TCP forwarding for host agents, API brokers, and MCP servers
 - Auth proxy for secure sandbox browser opens and OAuth loopback callbacks
 - Health checks via `ags doctor`
 - Convenience alias/wrapper generation via `ags create-aliases`

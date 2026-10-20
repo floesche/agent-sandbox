@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Declare reusable `[[host_connection]]` Unix-stream and loopback-TCP forwards in trusted host configuration. AGS owns private per-session relays, bounded clients, startup checks, and cleanup without sharing host supplementary groups or binding services to the LAN.
+- Allow prepare hooks to request explicitly granted connection names with `connections`; repository overlays cannot define endpoints. Lockdown omits configured connections and rejects hook requests. See [host connections](docs/HOST_CONNECTIONS.md) for SSH, API-broker, and MCP recipes.
+- Report enabled host endpoint reachability in `ags doctor` (transport checks only, not protocol authentication).
+
+### Security
+
+- Deliver literal hook environment values through the private runtime env file rather than exposing them in Podman command-line arguments. Explicit CLI environment overrides retain precedence.
+
 ## [0.27.0] - 2026-10-13
 
 Prepare your sandbox before it starts: trusted startup hooks can connect a launch to your own host-side tooling without custom AGS builds or container images.

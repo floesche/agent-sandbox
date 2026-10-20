@@ -3,6 +3,10 @@ fn reject_overlay_command_secrets(overlay: &Value, overlay_path: &Path) -> Resul
         return Ok(());
     };
 
+    if root.contains_key("host_connection") {
+        return Err(ConfigError::Validation("repo-local configs cannot define host_connection; declare endpoints and hook grants in the trusted base config".into()));
+    }
+
     if let Some(secrets) = root.get("secret").and_then(Value::as_array) {
         for (index, secret) in secrets.iter().enumerate() {
             if secret

@@ -193,6 +193,14 @@ Behavior:
 
 ---
 
+## `[[host_connection]]`
+
+Declare named host Unix-stream or loopback-TCP connections, with sandbox Unix sockets
+or loopback listeners. These declarations and their optional hook activation grants
+are allowed only in the trusted base config, never repository overlays. See
+[host connections](HOST_CONNECTIONS.md) for fields, lifecycle, security limits, and
+SSH/GitHub/MCP client recipes.
+
 ## `[[mount]]`
 
 Extra host bind mounts.

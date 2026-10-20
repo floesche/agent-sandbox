@@ -27,6 +27,7 @@ fn minimal_config(tmp: &Path) -> ValidatedConfig {
 
     ValidatedConfig {
         prepare_hooks: Vec::new(),
+        host_connections: Vec::new(),
         config_file: tmp.join("config.toml"),
         sandbox: ValidatedSandbox {
             image: "test-image:latest".into(),

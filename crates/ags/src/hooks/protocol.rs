@@ -80,6 +80,8 @@ pub enum Mode {
 pub struct Response {
     pub version: u8,
     #[serde(default)]
+    pub connections: Vec<String>,
+    #[serde(default)]
     pub env: BTreeMap<String, EnvValue>,
     #[serde(default)]
     pub files: Vec<GeneratedFile>,
@@ -99,6 +101,14 @@ impl Response {
     pub fn validate(&self) -> Result<(), String> {
         if self.version != 1 {
             return Err("response version must be 1".into());
+        }
+        if self.connections.len() > 32
+            || self
+                .connections
+                .iter()
+                .any(|name| !crate::host_connections::valid_name(name))
+        {
+            return Err("connections must contain at most 32 valid host connection names".into());
         }
         for (key, value) in &self.env {
             validate_env_name(key)?;
