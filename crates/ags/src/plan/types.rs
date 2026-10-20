@@ -152,7 +152,7 @@ pub struct SecurityConfig {
 impl Default for SecurityConfig {
     fn default() -> Self {
         Self {
-            userns: Some("keep-id".to_owned()),
+            userns: Some("keep-id:uid=1000,gid=1000".to_owned()),
             user: None,
             security_opts: vec!["no-new-privileges".to_owned(), "label=disable".to_owned()],
             cap_drop: Some("all".to_owned()),

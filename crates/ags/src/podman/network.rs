@@ -14,7 +14,12 @@ pub(crate) fn adapt_network_mode_for_installed_podman(plan: &mut LaunchPlan) {
         return;
     };
 
-    let network_mode = network_mode_for_podman_version(&plan.network_mode, &version);
+    let network_mode = network_mode_for_available_backends(
+        &plan.network_mode,
+        &version,
+        crate::util::has_command("slirp4netns"),
+        crate::util::has_command("pasta"),
+    );
     if network_mode != plan.network_mode {
         eprintln!(
             "[ags] Podman {version} detected; using --network={network_mode} instead of {}",
@@ -24,8 +29,20 @@ pub(crate) fn adapt_network_mode_for_installed_podman(plan: &mut LaunchPlan) {
     }
 }
 
+#[cfg(test)]
 fn network_mode_for_podman_version(current: &str, version: &str) -> String {
-    if is_slirp4netns_mode(current) && podman_version_requires_pasta(version) {
+    network_mode_for_available_backends(current, version, true, true)
+}
+
+fn network_mode_for_available_backends(
+    current: &str,
+    version: &str,
+    slirp_available: bool,
+    pasta_available: bool,
+) -> String {
+    if is_slirp4netns_mode(current)
+        && (podman_version_requires_pasta(version) || (!slirp_available && pasta_available))
+    {
         pasta_network_mode_for_slirp(current)
     } else {
         current.to_owned()
@@ -103,7 +120,27 @@ fn podman_version_requires_pasta(version: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{fallback_network_mode_after_run_failure, network_mode_for_podman_version};
+    use super::{
+        fallback_network_mode_after_run_failure, network_mode_for_available_backends,
+        network_mode_for_podman_version,
+    };
+
+    #[test]
+    fn uses_pasta_when_slirp_is_not_installed() {
+        assert_eq!(
+            network_mode_for_available_backends(
+                "slirp4netns:allow_host_loopback=true",
+                "5.8.8",
+                false,
+                true
+            ),
+            "pasta:--map-host-loopback,10.0.2.2"
+        );
+        assert_eq!(
+            network_mode_for_available_backends("slirp4netns", "5.8.8", false, false),
+            "slirp4netns"
+        );
+    }
 
     #[test]
     fn keeps_slirp4netns_for_podman_5() {

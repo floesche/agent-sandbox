@@ -446,7 +446,9 @@ fn build_podman_run_args(
         "run".to_owned(),
         "--rm".to_owned(),
         "-it".to_owned(),
-        "--userns=keep-id".to_owned(),
+        // Map the invoking user to the image's dev UID so private candidate
+        // directories and the 0600 lease marker remain accessible rootlessly.
+        "--userns=keep-id:uid=1000,gid=1000".to_owned(),
         "--security-opt=label=disable".to_owned(),
         "-v".to_owned(),
         format!("{}:/usr/local/pnpm:rw", pnpm_home.display()),

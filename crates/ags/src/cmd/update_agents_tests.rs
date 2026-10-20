@@ -67,6 +67,7 @@ fn podman_run_args_mount_all_reconciliation_volumes_without_relabeling() {
     );
 
     assert!(args.contains(&"--security-opt=label=disable".to_owned()));
+    assert!(args.contains(&"--userns=keep-id:uid=1000,gid=1000".to_owned()));
     for mount in [
         "/tmp/generation/pnpm-home:/usr/local/pnpm:rw",
         "/tmp/generation/codex-home:/opt/codex-home:rw",

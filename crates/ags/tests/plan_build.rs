@@ -842,7 +842,10 @@ fn security_defaults() {
     let workdir = tempfile::tempdir().unwrap();
     let plan = build_plan_from(&toml, workdir.path());
 
-    assert_eq!(plan.security.userns.as_deref(), Some("keep-id"));
+    assert_eq!(
+        plan.security.userns.as_deref(),
+        Some("keep-id:uid=1000,gid=1000")
+    );
     assert_eq!(plan.security.cap_drop.as_deref(), Some("all"));
     assert_eq!(plan.security.pids_limit, 4096);
     assert!(
