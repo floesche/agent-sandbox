@@ -133,7 +133,7 @@ pub(crate) fn build_helper_run_args(
     let mut args = vec![
         "run".to_owned(),
         "--rm".to_owned(),
-        "--userns=keep-id".to_owned(),
+        "--userns=keep-id:uid=1000,gid=1000".to_owned(),
         "--security-opt=no-new-privileges".to_owned(),
         "--security-opt=label=disable".to_owned(),
         "--cap-drop=all".to_owned(),

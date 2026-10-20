@@ -73,7 +73,7 @@ fn interactive_output_is_not_persisted_by_podman() {
 fn args_include_security_flags() {
     let plan = minimal_plan();
     let args = build_run_args(&plan, Path::new("/tmp/env"));
-    assert!(args.contains(&"--userns=keep-id".to_owned()));
+    assert!(args.contains(&"--userns=keep-id:uid=1000,gid=1000".to_owned()));
     assert!(args.contains(&"--security-opt=no-new-privileges".to_owned()));
     assert!(args.contains(&"--security-opt=label=disable".to_owned()));
     assert!(args.contains(&"--cap-drop=all".to_owned()));
