@@ -207,8 +207,10 @@ Client wiring still matters:
   (for example `http://127.0.0.1:8317/v1`), plus a reference to the injected client-key
   environment variable. Mounted model definitions alone do not supply credentials.
 - **Claude:** supply `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` for its gateway.
-  When supported by the installed Claude version, enable
-  `CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1` to discover gateway models. Reserved
+  Leave `CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY` unset to keep Claude's built-in
+  model choices. Setting it to `1` (on supported Claude versions) discovers the
+  gateway's catalog, which may include non-Claude models. This setting affects
+  model discovery, not which models the gateway authorizes. Reserved
   `CLAUDE_*` variables cannot be supplied by prepare hooks: put those non-secret
   client settings in reviewed trusted-base configuration, such as a read-only
   `/etc/profile.d` script. Clear conflicting direct-provider authentication/routing
