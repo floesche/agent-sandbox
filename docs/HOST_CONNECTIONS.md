@@ -218,6 +218,17 @@ Client wiring still matters:
 - Do not inject Claude's Anthropic credential into Pi just because both use the
   same gateway: Pi may interpret it as credentials for direct Anthropic models.
 
+For `ags --agent shell`, include `shell` in the model hook's agent scope so it
+requests the connection and injects the shared gateway client-key variable. Do
+**not** export Claude's `ANTHROPIC_AUTH_TOKEN` into the shell: every subsequently
+launched client, including Pi, would inherit it. Instead, provide a reviewed
+container-native `claude` executable wrapper on the shell's `PATH` using a read-only
+`[[tool]]` mount. The wrapper should set Claude's URL/auth, clear conflicting
+authentication and mixed-model discovery, then `exec` the installed container-native
+Claude binary by its absolute path. Pi can use the shared key directly through
+its existing `models.json` reference. Verify command resolution and that running
+Claude leaves the parent shell's authentication environment unchanged.
+
 Verify more than `ags doctor`: connection probes only prove that a socket accepts
 connections. Check the model list **inside the sandbox**, then request a small,
 no-tool response through each harness, including its default model selection.
