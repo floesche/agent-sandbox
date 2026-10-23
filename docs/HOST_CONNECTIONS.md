@@ -176,6 +176,52 @@ hook for lockdown sessions assuming AGS can recognize the literal as a secret. A
 that also requests its required connection is refused in lockdown before launch,
 although approved host hook code has already executed.
 
+### Model gateways are separate from MCP
+
+A working MCP connection does **not** give Pi, Claude, or Codex access to models.
+Host harness launchers may supply a model gateway URL, its client credential, and
+provider-specific flags. AGS launches container-native harnesses, not those host
+launchers, so their environment must be configured separately.
+
+For example, a model gateway on host loopback port 8317 needs its own connection,
+even if Executor MCP on port 4788 already works:
+
+```toml
+[[host_connection]]
+name = "model-gateway"
+host_tcp = "127.0.0.1:8317"
+sandbox_tcp = "127.0.0.1:8317"
+enabled = false
+allow_hooks = true
+```
+
+An approved prepare hook can obtain the gateway **client** credential from a
+validated host source and return `"connections": ["model-gateway"]` in its JSON
+response, together with the required environment variables. Keep upstream provider
+OAuth credentials on the host. Scope the contribution to the agents that use it;
+a connection request also prevents silently injecting the credential in lockdown.
+
+Client wiring still matters:
+
+- **Pi:** its mounted `models.json` needs the gateway's compatible API and base URL
+  (for example `http://127.0.0.1:8317/v1`), plus a reference to the injected client-key
+  environment variable. Mounted model definitions alone do not supply credentials.
+- **Claude:** supply `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` for its gateway.
+  When supported by the installed Claude version, enable
+  `CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1` to discover gateway models. Reserved
+  `CLAUDE_*` variables cannot be supplied by prepare hooks: put those non-secret
+  client settings in reviewed trusted-base configuration, such as a read-only
+  `/etc/profile.d` script. Clear conflicting direct-provider authentication/routing
+  when selecting this gateway.
+- Do not inject Claude's Anthropic credential into Pi just because both use the
+  same gateway: Pi may interpret it as credentials for direct Anthropic models.
+
+Verify more than `ags doctor`: connection probes only prove that a socket accepts
+connections. Check the model list **inside the sandbox**, then request a small,
+no-tool response through each harness, including its default model selection.
+A model advertised by a gateway may still be rejected by the upstream account;
+that is distinct from a missing forward or client credential.
+
 ## Security limits
 
 These are byte-stream relays, not protocol authorization proxies. A granted endpoint
