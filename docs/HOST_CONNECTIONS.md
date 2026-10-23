@@ -142,9 +142,13 @@ registered host credentials.
 Configure the container's `gh` with a dedicated `config.yml`:
 
 ```yaml
+version: "1"
 http_unix_socket: /run/ags-connections/github-api.sock
 git_protocol: ssh
 ```
+
+Include the schema version before mounting this configuration read-only: current
+`gh` otherwise attempts a config migration and fails on the read-only filesystem.
 
 A container-native wrapper should select that config and the broker's documented
 placeholder token, clearing other GitHub token variables. The host broker retains
