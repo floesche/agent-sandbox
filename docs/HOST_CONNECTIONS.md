@@ -26,6 +26,19 @@ host_tcp = "127.0.0.1:4788"
 sandbox_tcp = "127.0.0.1:4788"
 ```
 
+For example, to reach a host service on port **4312** at `localhost:4312` inside
+the container, add this to the trusted base config and start a new AGS session:
+
+```toml
+[[host_connection]]
+name = "host-4312"
+host_tcp = "127.0.0.1:4312"
+sandbox_tcp = "127.0.0.1:4312"
+```
+
+The host service must be running when AGS starts. No manual `socat` process or
+`host.containers.internal` URL is needed.
+
 Each entry has exactly one `host_unix` or `host_tcp`, and exactly one
 `sandbox_unix` or `sandbox_tcp`. The transports can be mixed in either direction.
 

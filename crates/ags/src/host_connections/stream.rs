@@ -56,6 +56,10 @@ pub fn connect(connection: &Connection) -> io::Result<Stream> {
     // Nonblocking connect also bounds a Unix listener whose backlog is full.
     let mut address: libc::sockaddr_un = unsafe { std::mem::zeroed() };
     address.sun_family = libc::AF_UNIX as _;
+    #[cfg(target_os = "macos")]
+    {
+        address.sun_len = std::mem::size_of_val(&address) as _;
+    }
     if bytes.len() >= address.sun_path.len() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -65,18 +69,23 @@ pub fn connect(connection: &Connection) -> io::Result<Stream> {
     for (target, byte) in address.sun_path.iter_mut().zip(bytes) {
         *target = *byte as _;
     }
-    let fd = unsafe {
-        libc::socket(
-            libc::AF_UNIX,
-            libc::SOCK_STREAM | libc::SOCK_NONBLOCK | libc::SOCK_CLOEXEC,
-            0,
-        )
-    };
+    #[cfg(target_os = "linux")]
+    let flags = libc::SOCK_STREAM | libc::SOCK_NONBLOCK | libc::SOCK_CLOEXEC;
+    #[cfg(not(target_os = "linux"))]
+    let flags = libc::SOCK_STREAM;
+    let fd = unsafe { libc::socket(libc::AF_UNIX, flags, 0) };
     if fd < 0 {
         return Err(io::Error::last_os_error());
     }
     // Own immediately so every error closes the descriptor.
     let socket = unsafe { UnixStream::from_raw_fd(fd) };
+    #[cfg(not(target_os = "linux"))]
+    {
+        if unsafe { libc::fcntl(fd, libc::F_SETFD, libc::FD_CLOEXEC) } < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        socket.set_nonblocking(true)?;
+    }
     let deadline = Instant::now() + Duration::from_secs(1);
     loop {
         let result = unsafe {
@@ -90,6 +99,10 @@ pub fn connect(connection: &Connection) -> io::Result<Stream> {
             return Ok(Stream::Unix(socket));
         }
         let error = io::Error::last_os_error();
+        if error.raw_os_error() == Some(libc::EINPROGRESS) {
+            wait_for_connect(&socket, deadline)?;
+            return Ok(Stream::Unix(socket));
+        }
         if error.raw_os_error() != Some(libc::EAGAIN) && error.kind() != io::ErrorKind::Interrupted
         {
             return Err(error);
@@ -101,6 +114,36 @@ pub fn connect(connection: &Connection) -> io::Result<Stream> {
             ));
         }
         std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn wait_for_connect(socket: &UnixStream, deadline: Instant) -> io::Result<()> {
+    let mut descriptor = libc::pollfd {
+        fd: socket.as_raw_fd(),
+        events: libc::POLLOUT,
+        revents: 0,
+    };
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "Unix connection timed out",
+            ));
+        }
+        let result = unsafe { libc::poll(&mut descriptor, 1, remaining.as_millis() as _) };
+        if result > 0 {
+            return match socket.take_error()? {
+                Some(error) => Err(error),
+                None => Ok(()),
+            };
+        }
+        if result < 0 {
+            let error = io::Error::last_os_error();
+            if error.kind() != io::ErrorKind::Interrupted {
+                return Err(error);
+            }
+        }
     }
 }
 
@@ -173,3 +216,7 @@ pub fn relay(mut client: Stream, mut host: Stream, stop: &AtomicBool) -> io::Res
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "stream_tests.rs"]
+mod tests;

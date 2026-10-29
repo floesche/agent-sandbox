@@ -80,6 +80,16 @@ const documents = [
     keywords: ["error", "fix", "missing", "debug", "problem", "doctor"],
   },
   {
+    slug: "host-connections",
+    source: "docs/HOST_CONNECTIONS.md",
+    title: "Host connections",
+    navTitle: "Host connections",
+    group: "integrate",
+    description:
+      "Forward selected host Unix sockets and loopback TCP services into a sandbox with private session-scoped relays.",
+    keywords: ["host", "connections", "ports", "forward", "tcp", "socket", "localhost"],
+  },
+  {
     slug: "glimpse",
     source: "docs/GLIMPSE.md",
     title: "Glimpse host UI",
