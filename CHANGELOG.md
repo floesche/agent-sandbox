@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-10-29
+
 ### Added
 
 - Declare reusable `[[host_connection]]` Unix-stream and loopback-TCP forwards in trusted host configuration. AGS owns private per-session relays, bounded clients, startup checks, and cleanup without sharing host supplementary groups or binding services to the LAN.
@@ -13,6 +15,16 @@ All notable changes to this project will be documented in this file.
 ### Security
 
 - Deliver literal hook environment values through the private runtime env file rather than exposing them in Podman command-line arguments. Explicit CLI environment overrides retain precedence.
+
+### Fixed
+
+- Keep host Unix socket setup compatible with macOS while preserving nonblocking connections and close-on-exec descriptors.
+- Map the invoking rootless user's identity to the image's `dev` UID/GID (1000) so private host relay sockets remain accessible inside the sandbox.
+- Select pasta when slirp4netns is unavailable and pasta is installed, preserving the configured host-loopback policy.
+
+### Upgrade notes
+
+- Upgrade the host AGS executable and start a new session. No standard image rebuild is needed; custom images using TCP forwards require `/usr/bin/python3`. Host connections require local Podman and are omitted in lockdown.
 
 ## [0.27.0] - 2026-10-13
 
