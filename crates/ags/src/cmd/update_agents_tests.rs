@@ -226,12 +226,18 @@ fn opencode_uses_verified_transactional_release_install() {
 #[test]
 fn opencode_version_check_accepts_prefixed_and_bare_output() {
     let script = all_agents_script();
-    let line = script
+    let start = script
         .lines()
-        .find(|line| {
-            line.starts_with("OPENCODE_ACTUAL_VERSION=") && line.contains("OPENCODE_STAGE")
+        .position(|line| {
+            line.starts_with("OPENCODE_VERSION_OUTPUT=") && line.contains("OPENCODE_STAGE")
         })
         .unwrap();
+    let line = script
+        .lines()
+        .skip(start)
+        .take(2)
+        .collect::<Vec<_>>()
+        .join("\n");
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(dir.path().join("bin")).unwrap();
     let binary = dir.path().join("bin/opencode");
@@ -242,13 +248,23 @@ fn opencode_version_check_accepts_prefixed_and_bare_output() {
         let result = Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "{line}\nprintf '%s' \"${{OPENCODE_ACTUAL_VERSION#v}}\""
+                "set -e\n{line}\nprintf '%s' \"${{OPENCODE_ACTUAL_VERSION#v}}\""
             ))
             .env("OPENCODE_STAGE", dir.path())
             .output()
             .unwrap();
         assert_eq!(String::from_utf8_lossy(&result.stdout), "2.2.4", "{output}");
     }
+
+    std::fs::write(&binary, "#!/bin/sh\necho 'opencode v2.2.4'\nexit 1\n").unwrap();
+    let result = Command::new("sh")
+        .arg("-c")
+        .arg(format!("set -e\n{line}\nprintf reached"))
+        .env("OPENCODE_STAGE", dir.path())
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(result.stdout.is_empty());
 }
 
 #[test]
